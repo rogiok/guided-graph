@@ -2,7 +2,9 @@
 
 To run:
 
+'''
 node bin/www
+'''
 
-Access the page using this URL http://localhost:3000
+Use the URL http://localhost:3000 to access the page. 
 
