@@ -1,0 +1,29 @@
+{
+  "nodes":[
+    {"id":0,"name":"identity-server","description1":"Linux Amazon","appType": "scala","coord":[3, 0]},
+    {"id":1,"name":"AngularJS","description1":"Linux Amazon","appType": "angularjs","coord":[2, 2]},
+    {"id":2,"name":"Man","description1":"Linux Amazon","appType": "man","coord":[4, 2]},
+    {"id":3,"name":"Scala","description1":"Linux Amazon","appType": "scala","coord":[1, 4]},
+    {"id":4,"name":"Uchannels Manager","description1":"Windows 2008","appType": "dotnet3","coord":[6, 4]},
+    {"id":5,"name":"Database","description1":"Linux Amazon AMI","appType": "database","coord":[3, 4]},
+    {"id":6,"name":"MySQL","description1":"Linux Amazon","appType": "mysql","coord":[5, 6]},
+    {"id":7,"name":"Scala","description1":"Linux Amazon","appType": "scala","coord":[3, 6]},
+    {"id":8,"name":"Browser","description1":"Linux Amazon","appType": "browser","coord":[6, 0]}
+  ],
+  "links":[
+    {"source":0,"target":1,"value":1},
+    {"source":0,"target":2,"value":1},
+    {"source":1,"target":3,"value":1},
+    {"source":2,"target":4,"value":1},
+    {"source":3,"target":7,"value":1},
+    {"source":2,"target":5,"value":1},
+    {"source":3,"target":2,"value":1},
+    {"source":4,"target":7,"value":1},
+    {"source":4,"target":8,"value":1}
+  ],
+  "groups":[
+    {"leaves":[1,2],"name":"front-end"},
+    {"leaves":[3,4,5],"name":"back-end"},
+    {"groups":[0,1],"leaves":[7],"name":"main system"}
+  ]
+}

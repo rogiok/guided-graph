@@ -24,6 +24,12 @@ a {
 .color-secondary-2-3 { color: #8A6C4A }
 .color-secondary-2-4 { color: #725029 }
 
+
+#body {
+  width: 100%;
+  height: 100%;
+}
+
 .node circle {
   r: 26;
   fill: #9798AE;
@@ -32,7 +38,8 @@ a {
 }
 
 .selection-mode {
-  cursor: default;
+  cursor: -webkit-grabbing;
+  cursor: -moz-grabbing;
 }
 
 .group rect {
@@ -65,4 +72,50 @@ path.link {
   fill: none;
   stroke: #515379;
   stroke-width: 3px;
+}
+
+
+
+.guided-graph__sidebar-left {
+  position: fixed;
+  z-index: 1002;
+  width: 250px;
+  height: 100%;
+  /*background: #424a5d;*/
+}
+
+.guided-graph__sidebar-right {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 1000;
+  display: block;
+  padding: 5px 5px 5px 350px;
+  overflow-x: hidden;
+  overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */
+  background-color: #ffffff;
+  height: 100%;
+  width: 100%;
+}
+
+
+.drop {
+  padding: 10px;
+  border: 1px solid #ccc;
+}
+
+#drop_zone {
+  border: 2px dashed #bbb;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+  border-radius: 5px;
+  padding: 25px;
+  text-align: center;
+  font: 20px 'PT Sans', sans-serif;
+  color: #bbb;
+}
+
+
+.guided-graph__testing {
+  z-index: 1003;
 }
