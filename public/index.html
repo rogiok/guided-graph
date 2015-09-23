@@ -71,7 +71,7 @@
             ]
         };
 
-        var gd3 = guidedGraph.adaptor().init('body', 1600, 850, 80, 80);
+        var gd3 = guidedGraph.adaptor().init('body', graph, 1600, 850, 80, 80);
 
         gd3.draw(graph);
 
@@ -123,7 +123,10 @@
                 // Closure to capture the file information.
                 reader.onload = (function(theFile) {
                     return function(e) {
-                        console.debug(e.target.result);
+//                        console.debug(e.target.result);
+
+                        gd3.init('body', JSON.parse(e.target.result), 1600, 850, 80, 80);
+                        gd3.draw();
                     };
                 })(f);
 

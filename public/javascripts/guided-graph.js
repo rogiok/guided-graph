@@ -4,6 +4,8 @@ var guidedGraph;
 
     guidedGraph.adaptor = function () {
         var adaptor = {};
+
+        var graph;
         var nodes = [];
         var links = [];
         var groups = [];
@@ -17,12 +19,16 @@ var guidedGraph;
         var boxPadding = 40;
         var selected;
 
-        adaptor.init = function(divId, areaWidth, areHeight, gridCellWidth, gridCellHeight) {
+        adaptor.init = function(divId, initGraph, areaWidth, areHeight, gridCellWidth, gridCellHeight) {
+
+            graph = initGraph;
 
             adaptor.size(gridCellWidth, gridCellHeight)
                 .nodes(graph.nodes)
                 .links(graph.links)
                 .groups(graph.groups);
+
+            d3.select('#' + divId).select('svg').remove();
 
             svg = d3.select('#' + divId)
                 .append('svg')
@@ -75,13 +81,13 @@ var guidedGraph;
                     if (lastCoord[0] != c[0] || lastCoord[1] != c[1]) {
                         selected.__data__.coord = c;
 
-                        adaptor.draw(graph);
+                        adaptor.draw();
                     }
                 }
             });
         }
 
-        adaptor.draw = function(graph) {
+        adaptor.draw = function() {
 
             adaptor.calculatePositions();
 
@@ -103,7 +109,7 @@ var guidedGraph;
                 .attr('x', 0)
                 .attr('y', 0)
                 .attr('dx', 35)
-                .attr('dy', 15)
+                .attr('dy', 18)
                 .attr('text-anchor', 'start')
                 .text(function(d) {
                     return d.name;
@@ -116,13 +122,14 @@ var guidedGraph;
                 .attr('x', 0)
                 .attr('y', 0)
                 .attr('dx', 35)
-                .attr('dy', 29)
+                .attr('dy', 32)
                 .each(function(d) {
                     d.textWidth = this.getBBox().width;
                 });
 
             gnodes.append('circle')
-                .attr('class', 'node');
+                .attr('class', 'node')
+                .attr('r', 26);
 
             gnodes.append('path')
                 .attr('class', 'icon')

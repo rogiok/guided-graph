@@ -31,7 +31,6 @@ a {
 }
 
 .node circle {
-  r: 26;
   fill: #9798AE;
   stroke: #515379;
   stroke-width: 3px;
