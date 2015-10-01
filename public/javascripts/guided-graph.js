@@ -6,9 +6,9 @@ var guidedGraph;
         var adaptor = {};
 
         var graph;
-        var nodes = [];
-        var links = [];
-        var groups = [];
+        var _nodes = [];
+        var _links = [];
+        var _groups = [];
 
         var gridCellWidth = 20;
         var gridCellHeight = 20;
@@ -93,7 +93,7 @@ var guidedGraph;
 
             // Nodes
             var nodes = svg.selectAll('g.node')
-                .data(graph.nodes, function(n) {
+                .data(_nodes, function(n) {
                     return n.id;
                 });
 
@@ -178,7 +178,7 @@ var guidedGraph;
 
             // Links
             var links = svg.select('g.links').selectAll('path.link')
-                .data(graph.links, function(d) {
+                .data(_links, function(d) {
                     // Define an identifier, in this case, it is possible
                     // to define two different links between source and target.
                     // To define more than 2 links, it is necessary to change this identifier.
@@ -201,7 +201,7 @@ var guidedGraph;
 
             // Groups
             var groups = svg.select('g.groups').selectAll('g.group')
-                .data(graph.groups, function(g) {
+                .data(_groups, function(g) {
                     return g.id;
                 });
 
@@ -273,39 +273,51 @@ var guidedGraph;
         };
 
         adaptor.nodes = function(v) {
-            nodes = v;
+            _nodes = v;
 
-            var c = 1;
+            return adaptor;
+        };
 
-            v.forEach(function(n) {
-                n.id = c;
-                c++;
-            });
+        adaptor.addNode = function(v) {
+            _nodes.push(v);
+
+            adaptor.draw();
 
             return adaptor;
         };
 
         adaptor.links = function(v) {
-            links = v;
+            _links = v;
 
             v.forEach(function(l) {
-                l.source = nodes[l.source];
-                l.target = nodes[l.target];
+                l.source = _nodes.filter(function(n) { if (n.id == l.source) return n; })[0];
+                l.target = _nodes.filter(function(n) { if (n.id == l.target) return n; })[0];
             });
 
             return adaptor;
         };
 
-        adaptor.groups = function(v) {
-            groups = v;
+        adaptor.addLink = function(v) {
+            v.source = _nodes.filter(function(n) { if (n.id == v.source) return n; })[0];
+            v.target = _nodes.filter(function(n) { if (n.id == v.target) return n; })[0];
 
-            v.forEach(function(g) {
+            _links.push(v);
+
+            adaptor.draw();
+
+            return adaptor;
+        };
+
+        adaptor.groups = function(v) {
+            _groups = v;
+
+            _groups.forEach(function(g) {
                 var id = "";
 
                 if (g.leaves)
                     for (var i = 0; i < g.leaves.length; i++) {
                         id = id + 'n' + g.leaves[i];
-                        g.leaves[i] = nodes[g.leaves[i]];
+                        g.leaves[i] = _nodes[g.leaves[i]];
                     }
 
                 var getLeaves = function(group) {
@@ -322,7 +334,7 @@ var guidedGraph;
                 if (g.groups) {
                     for (var i = 0; i < g.groups.length; i++) {
                         id = id + 'g' + g.groups[i];
-                        g.groups[i] = groups[g.groups[i]];
+                        g.groups[i] = _groups[g.groups[i]];
                     }
 
                     g.leaves = g.leaves.concat(getLeaves(g));
@@ -336,53 +348,49 @@ var guidedGraph;
 
         adaptor.calculatePositions = function() {
 
-            nodes.forEach(function(node) {
-                var x = node.coord[0];
-                var y = node.coord[1];
+            _nodes.forEach(function(n) {
+                var x = n.coord[0];
+                var y = n.coord[1];
 
-                node.x = x * gridCellWidth + Math.round(gridCellWidth / 2);
-                node.y = y * gridCellHeight + Math.round(gridCellHeight / 2);
+                n.x = x * gridCellWidth + Math.round(gridCellWidth / 2);
+                n.y = y * gridCellHeight + Math.round(gridCellHeight / 2);
             });
 
-            var processGroup = function(group) {
+            var processGroup = function(g) {
                 var minX = Number.MAX_VALUE;
                 var minY = Number.MAX_VALUE;
                 var maxX = 0;
                 var maxY = 0;
 
-                group.leaves.forEach(function(n) {
-//                        if (n.x < minX)
+                g.leaves.forEach(function(n) {
                     minX = Math.min(n.x, minX);
-//                        if (n.y < minY)
                     minY = Math.min(n.y, minY);
-//                        if (n.x > maxX)
                     maxX = Math.max(n.x, maxX);
-//                        if (n.y > maxY)
                     maxY = Math.max(n.y, maxY);
                 });
 
-                group.x = minX;
-                group.y = minY;
-                group.maxX = maxX;
-                group.maxY = maxY;
-                group.width = maxX - minX;
-                group.height = maxY - minY;
+                g.x = minX;
+                g.y = minY;
+                g.maxX = maxX;
+                g.maxY = maxY;
+                g.width = maxX - minX;
+                g.height = maxY - minY;
             };
 
-            var checkLevel = function(group) {
+            var checkLevel = function(g) {
 
-                if (!group.groups) {
-                    group.level = 1;
+                if (!g.groups) {
+                    g.level = 1;
 
                     return 1;
                 } else {
                     var maxLevel = 0;
 
-                    group.groups.forEach(function (g) {
+                    g.groups.forEach(function (g) {
                         maxLevel = Math.max(checkLevel(g), maxLevel);
                     });
 
-                    group.groups.forEach(function (g) {
+                    g.groups.forEach(function (g) {
                         g.level = maxLevel;
                     });
 
@@ -392,16 +400,16 @@ var guidedGraph;
                 }
             };
 
-            groups.forEach(function(group) {
+            _groups.forEach(function(g) {
 
-                if (group.leaves && group.leaves.length > 0) {
-                    processGroup(group);
+                if (g.leaves && g.leaves.length > 0) {
+                    processGroup(g);
 
-                    group.level = 1;
+                    g.level = 1;
                 }
 
-                if (group.groups && group.groups.length > 0)
-                    group.level = checkLevel(group);
+                if (g.groups && g.groups.length > 0)
+                    g.level = checkLevel(g);
             });
 
             return adaptor;
@@ -412,28 +420,40 @@ var guidedGraph;
         };
 
         adaptor.change = function(x, y) {
-            nodes[0].coord[0] = x;
-            nodes[0].coord[1] = y;
+            _nodes[0].coord[0] = x;
+            _nodes[0].coord[1] = y;
         };
 
-        function disableSelect(el){
-            if(el.addEventListener){
-                el.addEventListener("mousedown",disabler,"false");
+        //var hashids = new Hashids("my salt");
+        //
+        //function genHashId() {
+        //    function getRandomInt(min, max) {
+        //        return Math.floor(Math.random() * (max - min)) + min;
+        //    }
+        //    var arr = [getRandomInt(1, 100), getRandomInt(1, 1000), getRandomInt(1, 100)];
+        //    return hashids.encode(arr);
+        //}
+
+        function disableSelect(el) {
+            if (el.addEventListener) {
+                el.addEventListener("mousedown", disabler, "false");
             } else {
-                el.attachEvent("onselectstart",disabler);
+                el.attachEvent("onselectstart", disabler);
             }
         }
 
-        function enableSelect(el){
-            if(el.addEventListener){
-                el.removeEventListener("mousedown",disabler,"false");
+        function enableSelect(el) {
+            if (el.addEventListener) {
+                el.removeEventListener("mousedown", disabler, "false");
             } else {
-                el.detachEvent("onselectstart",disabler);
+                el.detachEvent("onselectstart", disabler);
             }
         }
 
-        function disabler(e){
-            if(e.preventDefault){ e.preventDefault(); }
+        function disabler(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
             return false;
         }
 

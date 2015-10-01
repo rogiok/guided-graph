@@ -13,6 +13,7 @@
     <script type="text/javascript" src="bower_components/d3/d3.js"></script>
     <script type="text/javascript" src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="bower_components/qunit/qunit/qunit.js"></script>
+    <script type="text/javascript" src="bower_components/hashids/lib/hashids.min.js"></script>
     <script type="text/javascript" src="javascripts/guided-graph.js"></script>
 </head>
 <body>
@@ -73,7 +74,7 @@
 
         var gd3 = guidedGraph.adaptor().init('body', graph, 1600, 850, 80, 80);
 
-        gd3.draw(graph);
+        gd3.draw();
 
     //    var drag = d3.behavior.drag()
     //            .on('drag', function( d, i) {
