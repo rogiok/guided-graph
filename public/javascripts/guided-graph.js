@@ -17,7 +17,14 @@ var guidedGraph;
 
         var distanceText = 80;
         var boxPadding = 40;
-        var selected;
+        var _selected = [];
+
+        var NO_MODE = 0;
+        var MOVE_MODE = 2;
+        var ADD_LINK_MODE = 4;
+        var SELECTION_LINK_MODE = 8;
+        var SELECTION_NODE_MODE = 16;
+        var _mode;
 
         adaptor.init = function(divId, initGraph, areaWidth, areHeight, gridCellWidth, gridCellHeight) {
 
@@ -65,23 +72,45 @@ var guidedGraph;
         };
 
         function defineEvents() {
-            svg.on('mouseup', function() {
-                selected = null;
+            svg.on('mousedown', function() {
+                _mode = NO_MODE;
 
-                svg.attr('class', '');
+                clearSelectedArray();
+
+                adaptor.draw();
+            });
+
+            svg.on('mouseup', function() {
+                if (_mode == MOVE_MODE) {
+                    _mode = SELECTION_NODE_MODE;
+
+                    svg.classed('selection-mode', false);
+                }
+
+                if (_mode == ADD_LINK_MODE) {
+                    _mode = SELECTION_LINK_MODE;
+
+                    svg.classed('add-link-mode', false);
+                }
             });
 
             svg.on('mousemove', function() {
                 var m = d3.mouse(this.parentNode);
 
-                if (selected) {
-                    var c = gd3.convertToCoord(m[0], m[1]);
-                    var lastCoord = selected.__data__.coord;
+                if (_selected.length > 0) {
+                    if (_mode == MOVE_MODE) {
+                        _selected.forEach(function (n) {
+                            var c = gd3.convertToCoord(m[0], m[1]);
+                            var lastCoord = n.__data__.coord;
 
-                    if (lastCoord[0] != c[0] || lastCoord[1] != c[1]) {
-                        selected.__data__.coord = c;
+                            if (lastCoord[0] != c[0] || lastCoord[1] != c[1]) {
+                                n.__data__.coord = c;
 
-                        adaptor.draw();
+                                adaptor.draw();
+                            }
+                        });
+                    //} else if (_mode == ADD_LINK_MODE) {
+
                     }
                 }
             });
@@ -104,71 +133,10 @@ var guidedGraph;
                     return 'translate(' + [d.x, d.y] + ')';
                 });
 
-            gnodes.append('text')
-                .attr('class', 'name')
-                .attr('x', 0)
-                .attr('y', 0)
-                .attr('dx', 35)
-                .attr('dy', 18)
-                .attr('text-anchor', 'start')
-                .text(function(d) {
-                    return d.name;
-                })
-                .append('tspan')
-                .attr('class', 'description1')
-                .text(function(d) {
-                    return d.description1;
-                })
-                .attr('x', 0)
-                .attr('y', 0)
-                .attr('dx', 35)
-                .attr('dy', 32)
-                .each(function(d) {
-                    d.textWidth = this.getBBox().width;
-                });
+            nodes.exit().remove();
 
-            gnodes.append('circle')
-                .attr('class', 'node')
-                .attr('r', 26);
-
-            gnodes.append('path')
-                .attr('class', 'icon')
-                .attr('d', function(d) {
-                    return icons[d.appType].d;
-                })
-                .attr('transform', function(d) {
-                    return icons[d.appType].transform;
-                });
-
-            // Event listeners
-            gnodes.select('circle').on('mouseover', function() {
-                disableSelect(document.getElementById('svg'));
-            });
-
-            gnodes.select('path').on('mouseover', function() {
-                disableSelect(document.getElementById('svg'));
-            });
-
-            gnodes.select('circle').on('mouseout', function() {
-                enableSelect(document.getElementById('svg'));
-            });
-
-            gnodes.select('mouseout').on('mouseover', function() {
-                enableSelect(document.getElementById('svg'));
-            });
-
-            gnodes.select('circle').on('mousedown', function() {
-                selected = this;
-
-                svg.attr('class', 'selection-mode');
-//            d3.select(selected).attr('class', 'selected');
-            });
-
-            gnodes.select('path').on('mousedown', function() {
-                selected = this;
-
-                svg.attr('class', 'selection-mode');
-            });
+            drawNodes();
+            defineNodeEvents();
 
             nodes.transition()
                 .attr('transform', function(d) {
@@ -193,10 +161,19 @@ var guidedGraph;
                 attr('d', diagonal);
 
             links.on('mousedown', function() {
-                var m = d3.mouse(this);
+                clearSelectedArray();
 
-                console.debug(m);
+                _selected.push(this);
+                _mode = SELECTION_LINK_MODE;
+
+                d3.select(this).classed('selected-link', true);
+
+                adaptor.draw();
+
+                d3.event.stopPropagation();
             });
+
+            links.exit().remove();
 
 
             // Groups
@@ -259,6 +236,222 @@ var guidedGraph;
                 .attr('x', function(g) {
                     return g.finalWidth - g.textWidth;
                 });
+
+            groups.exit().remove();
+
+            // Draw selection
+            nodes
+                .select('circle.selected')
+                .attr('visibility', function() {
+                    return d3.select(this.parentNode).attr('class').indexOf('selected-node') > -1 ? 'visible' : 'hidden';
+                });
+
+            nodes
+                .selectAll('path.selected')
+                .attr('visibility', function() {
+                    return d3.select(this.parentNode).attr('class').indexOf('selected-node') > -1 &&
+                        _selected.length == 1 &&
+                        (_mode != ADD_LINK_MODE || (_mode == ADD_LINK_MODE && this.parentNode == _selected[0])) ?
+                            'visible' : 'hidden';
+                });
+
+            function drawNodes() {
+                gnodes.append('text')
+                    .attr('class', 'name')
+                    .attr('x', 0)
+                    .attr('y', 0)
+                    .attr('dx', 35)
+                    .attr('dy', 18)
+                    .attr('text-anchor', 'start')
+                    .text(function(d) {
+                        return d.name;
+                    })
+                    .append('tspan')
+                    .attr('class', 'description1')
+                    .text(function(d) {
+                        return d.description1;
+                    })
+                    .attr('x', 0)
+                    .attr('y', 0)
+                    .attr('dx', 35)
+                    .attr('dy', 32)
+                    .each(function(d) {
+                        d.textWidth = this.getBBox().width;
+                    });
+
+                gnodes.append('circle')
+                    .attr('class', 'node')
+                    .attr('r', 26);
+
+                gnodes.append('path')
+                    .attr('class', 'icon')
+                    .attr('d', function(d) {
+                        return icons[d.appType].d;
+                    })
+                    .attr('transform', function(d) {
+                        return icons[d.appType].transform;
+                    });
+
+                gnodes.append('circle')
+                    .attr('class', 'selected')
+                    .attr('r', 30)
+                    .attr('visibility', 'hidden');
+
+                // West
+                gnodes.append('path')
+                    .attr('class', 'selected')
+                    .attr('d', 'M-5 0 L5 -10 L5 10Z')
+                    .attr('transform', 'translate(-40 0)')
+                    .attr('visibility', 'hidden');
+
+                // East
+                gnodes.append('path')
+                    .attr('class', 'selected')
+                    .attr('d', 'M-5 -10 L5 0 L-5 10Z')
+                    .attr('transform', 'translate(40 0)')
+                    .attr('visibility', 'hidden');
+
+                // South
+                gnodes.append('path')
+                    .attr('class', 'selected')
+                    .attr('d', 'M-10 -5 L0 5 L10 -5Z')
+                    .attr('transform', 'translate(0 40)')
+                    .attr('visibility', 'hidden');
+
+                // North
+                gnodes.append('path')
+                    .attr('class', 'selected')
+                    .attr('d', 'M-10 5 L0 -5 L10 5Z')
+                    .attr('transform', 'translate(0 -40)')
+                    .attr('visibility', 'hidden');
+
+            }
+
+            function defineNodeEvents() {
+                // Event listeners
+                // circle
+                gnodes.select('circle').on('mouseover', function() {
+                    disableSelect(document.getElementById('svg'));
+
+                    if (_mode == ADD_LINK_MODE && this.parentNode != _selected[0]) {
+                        d3.select(this.parentNode).classed('selected-node', true);
+
+                        adaptor.draw();
+                    }
+                });
+
+                gnodes.select('circle').on('mouseout', function() {
+                    enableSelect(document.getElementById('svg'));
+
+                    if (_mode == ADD_LINK_MODE && this.parentNode != _selected[0]) {
+                        d3.select(this.parentNode).classed('selected-node', false);
+
+                        adaptor.draw();
+                    }
+                });
+
+                gnodes.select('circle').on('mousedown', function() {
+                    clearSelectedArray();
+                    _selected.push(this.parentNode);
+                    _mode = MOVE_MODE;
+
+                    svg.classed('selection-mode', true);
+
+                    d3.select(this.parentNode).classed('selected-node', true);
+
+                    adaptor.draw();
+
+                    d3.event.stopPropagation();
+                });
+
+                gnodes.select('circle').on('mouseup', function() {
+                    if (_mode == ADD_LINK_MODE) {
+                        // New Link
+                        newLink(this.parentNode);
+
+                        d3.select(this.parentNode).classed('selected-node', false);
+
+                        svg.classed('add-link-mode', false);
+
+                        adaptor.draw();
+                    }
+                });
+
+                // path
+                gnodes.select('path').on('mouseover', function() {
+                    disableSelect(document.getElementById('svg'));
+
+                    if (_mode == ADD_LINK_MODE && this.parentNode != _selected[0]) {
+                        d3.select(this.parentNode).classed('selected-node', true);
+
+                        adaptor.draw();
+                    }
+                });
+
+                gnodes.select('path').on('mouseout', function() {
+                    enableSelect(document.getElementById('svg'));
+
+                    if (_mode == ADD_LINK_MODE && this.parentNode != _selected[0]) {
+                        d3.select(this.parentNode).classed('selected-node', false);
+
+                        adaptor.draw();
+                    }
+                });
+
+                gnodes.select('path').on('mousedown', function() {
+                    clearSelectedArray();
+                    _selected.push(this.parentNode);
+                    _mode = MOVE_MODE;
+
+                    svg.classed('selection-mode', true);
+
+                    d3.select(this.parentNode).classed('selected-node', true);
+
+                    adaptor.draw();
+
+                    d3.event.stopPropagation();
+                });
+
+                gnodes.select('path').on('mouseup', function() {
+                    if (_mode == ADD_LINK_MODE) {
+                        // New Link
+                        newLink(this.parentNode);
+
+                        d3.select(this.parentNode).classed('selected-node', false);
+
+                        svg.classed('add-link-mode', false);
+
+                        adaptor.draw();
+                    }
+                });
+
+                //gnodes.select('mouseout').on('mouseover', function() {
+                //    enableSelect(document.getElementById('svg'));
+                //});
+
+                // path.selected
+                gnodes.selectAll('path.selected').on('mouseover', function() {
+                    disableSelect(document.getElementById('svg'));
+                });
+
+                gnodes.selectAll('path.selected').on('mouseout', function() {
+                    enableSelect(document.getElementById('svg'));
+                });
+
+                gnodes.selectAll('path.selected').on('mousedown', function() {
+                    _mode = ADD_LINK_MODE;
+
+                    svg.classed('add-link-mode', true);
+
+                    d3.event.stopPropagation();
+                });
+
+                function newLink(node) {
+                    adaptor.addLink({"source":_selected[0].__data__.id,"target":node.__data__.id,"value":1});
+
+                    _mode = NO_MODE;
+                }
+            }
 
         };
 
@@ -434,19 +627,105 @@ var guidedGraph;
         //    return hashids.encode(arr);
         //}
 
+        //var metaChar = false;
+        //var exampleKey = 16;
+
+        adaptor.keyEvent = function(event) {
+            var key = event.keyCode || event.which;
+            //var keychar = String.fromCharCode(key);
+
+            if (key == 46 && _selected.length > 0) {
+                remove();
+            }
+        };
+
+        function remove() {
+
+            function removeLink(link) {
+                var index = _links.indexOf(link);
+
+                _links.splice(index, 1);
+            }
+
+            if (_mode == SELECTION_LINK_MODE && _links.length > 0) {
+                removeLink(_selected[0].__data__);
+
+                if (_links.length == 0)
+                    _mode == NO_MODE;
+            } else if (_mode == SELECTION_NODE_MODE && _nodes.length > 0) {
+                var n = _selected[0].__data__;
+                var index = _nodes.indexOf(n);
+
+                // Remove the node
+                _nodes.splice(index, 1);
+
+                // Remove all links associated with this node
+                _links.filter(function(l) {
+                    if (l.source.id == n.id || l.target.id == n.id) {
+                        return l;
+                    }
+                }).forEach(function(l) { removeLink(l); });
+
+                // Remove all groups associated with this node
+                _groups.filter(function(g) {
+                    var gs = g.leaves.filter(function(gc) {
+                        if (gc.id == n.id) return gc;
+                    });
+
+                    var index = g.leaves.indexOf(gs[0]);
+
+                    if (index >= 0)
+                        g.leaves.splice(index, 1);
+
+                    if (g.leaves.length == 0) {
+                        return g;
+                    }
+                }).forEach(function(g) {
+                    var index = _groups.indexOf(g);
+
+                    if (index >= 0)
+                        _groups.splice(index, 1);
+                });
+
+                if (_nodes.length == 0)
+                    _mode == NO_MODE;
+            }
+
+            clearSelectedArray();
+
+            adaptor.draw();
+        }
+
+        function clearSelectedArray() {
+            var selectedNode = d3.selectAll('g.selected-node');
+
+            selectedNode
+                .classed('selected-node', false);
+            selectedNode
+                .selectAll('circle.selected').attr('visibility', 'hidden');
+
+            _selected.splice(0, _selected.length);
+
+            var selectedLink = d3.selectAll('path.selected-link');
+
+            selectedLink
+                .classed('selected-link', false);
+
+        }
+
         function disableSelect(el) {
             if (el.addEventListener) {
-                el.addEventListener("mousedown", disabler, "false");
+                el.addEventListener('mousedown', disabler, 'false');
             } else {
-                el.attachEvent("onselectstart", disabler);
+                el.attachEvent('onselectstart', disabler);
             }
         }
 
         function enableSelect(el) {
             if (el.addEventListener) {
-                el.removeEventListener("mousedown", disabler, "false");
+                el.removeEventListener('mousedown', disabler, 'false');
             } else {
-                el.detachEvent("onselectstart", disabler);
+                el.detachEvent('onselectstart', disabler);
             }
         }
 

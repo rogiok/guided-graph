@@ -36,15 +36,32 @@ a {
   stroke-width: 3px;
 }
 
+.node circle.selected {
+  fill: none;
+  stroke: #da4939;
+  stroke-width: 2px;
+  stroke-dasharray: 5,5;
+}
+
+.node path.selected {
+  fill: white;
+  fill-opacity: 0;
+  stroke: #da4939;
+  stroke-width: 2px;
+}
+
 .selection-mode {
   cursor: -webkit-grabbing;
   cursor: -moz-grabbing;
 }
 
+.add-link-mode {
+  cursor: crosshair;
+}
+
 .group rect {
   fill: none;
   stroke-width: 3px;
-  /*stroke: #656768;*/
   stroke: #9798AE;
 }
 
@@ -73,7 +90,11 @@ path.link {
   stroke-width: 3px;
 }
 
-
+path.selected-link {
+  fill: none;
+  stroke: #da4939;
+  stroke-width: 4px;
+}
 
 .guided-graph__sidebar-left {
   position: fixed;

@@ -16,7 +16,7 @@
     <script type="text/javascript" src="bower_components/hashids/lib/hashids.min.js"></script>
     <script type="text/javascript" src="javascripts/guided-graph.js"></script>
 </head>
-<body>
+<body onkeydown="keyEvent(event)">
 
     <div class="container-fluid">
         <div class="row">
@@ -26,6 +26,11 @@
                         <div id="drop_zone">Drop files here</div>
                         <output id="list"></output>
                     </div>
+
+                    <div class="guided-graph__toolbar">
+                        <input type="button" value="Add Node" onclick="addNewNode()">
+                    </div>
+
                     <div class="guided-graph__testing">
                         <div id="qunit"></div>
                         <div id="qunit-fixture"></div>
@@ -81,6 +86,10 @@
     //               d3.event.sourceEvent.stopPropagation();
     //            });
 
+        function keyEvent(event) {
+            gd3.keyEvent(event);
+        }
+
         QUnit.test('calculation test', function( assert ) {
 
             var t3d = guidedGraph.adaptor().size(20, 20);
@@ -105,6 +114,11 @@
     </script>
 
     <script>
+
+        function addNewNode() {
+            gd3.addNode({"id":"111","name":"","description1":"","appType":"browser","coord":[0, 0]});
+        }
+
         function handleFileSelect(evt) {
             evt.stopPropagation();
             evt.preventDefault();
