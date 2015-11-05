@@ -2,21 +2,21 @@ var guidedGraph;
 
 (function (guidedGraph) {
 
-    guidedGraph.adaptor = function () {
-        var adaptor = {};
+    guidedGraph.instance = function () {
+        var _instance = {};
 
-        var graph;
+        var _graph;
         var _nodes = [];
         var _links = [];
         var _groups = [];
 
-        var gridCellWidth = 20;
-        var gridCellHeight = 20;
+        var _gridCellWidth = 20;
+        var _gridCellHeight = 20;
 
-        var svg, diagonal;
+        var _svg, _diagonal;
 
-        var distanceText = 80;
-        var boxPadding = 40;
+        var _distanceText = 80;
+        var _boxPadding = 40;
         var _selected = [];
 
         var NO_MODE = 0;
@@ -26,29 +26,31 @@ var guidedGraph;
         var SELECTION_NODE_MODE = 16;
         var _mode;
 
-        adaptor.init = function(divId, initGraph, areaWidth, areHeight, gridCellWidth, gridCellHeight) {
+        var _onSelectEvent;
 
-            graph = initGraph;
+        _instance.init = function(divId, initGraph, areaWidth, areHeight, gridCellWidth, gridCellHeight) {
 
-            adaptor.size(gridCellWidth, gridCellHeight)
-                .nodes(graph.nodes)
-                .links(graph.links)
-                .groups(graph.groups);
+            _graph = initGraph;
+
+            _instance.size(gridCellWidth, gridCellHeight)
+                .nodes(_graph.nodes)
+                .links(_graph.links)
+                .groups(_graph.groups);
 
             d3.select('#' + divId).select('svg').remove();
 
-            svg = d3.select('#' + divId)
+            _svg = d3.select('#' + divId)
                 .append('svg')
                 .attr('id', 'svg')
                 .attr('width', areaWidth)
                 .attr('height', areHeight);
 
-            diagonal = d3.svg.diagonal()
+            _diagonal = d3.svg.diagonal()
                 .projection(function(d) {
                     return [d.x, d.y];
                 });
 
-            svg.append('svg:defs').append('svg:marker')
+            _svg.append('svg:defs').append('svg:marker')
                 .attr('id', 'end-arrow')
                 .attr('viewBox', '0 0 10 10')
                 .attr('refX', 26)
@@ -60,53 +62,53 @@ var guidedGraph;
                 .attr('d', 'M 0 0 L 10 5 L 0 10 z')
                 .attr('fill', '#000');
 
-            svg.append('g')
+            _svg.append('g')
                 .attr('class', 'groups');
 
-            svg.append('g')
+            _svg.append('g')
                 .attr('class', 'links');
 
             defineEvents();
 
-            return adaptor;
+            return _instance;
         };
 
         function defineEvents() {
-            svg.on('mousedown', function() {
+            _svg.on('mousedown', function() {
                 _mode = NO_MODE;
 
                 clearSelectedArray();
 
-                adaptor.draw();
+                _instance.draw();
             });
 
-            svg.on('mouseup', function() {
+            _svg.on('mouseup', function() {
                 if (_mode == MOVE_MODE) {
                     _mode = SELECTION_NODE_MODE;
 
-                    svg.classed('selection-mode', false);
+                    _svg.classed('selection-mode', false);
                 }
 
                 if (_mode == ADD_LINK_MODE) {
                     _mode = SELECTION_LINK_MODE;
 
-                    svg.classed('add-link-mode', false);
+                    _svg.classed('add-link-mode', false);
                 }
             });
 
-            svg.on('mousemove', function() {
+            _svg.on('mousemove', function() {
                 var m = d3.mouse(this.parentNode);
 
                 if (_selected.length > 0) {
                     if (_mode == MOVE_MODE) {
                         _selected.forEach(function (n) {
-                            var c = gd3.convertToCoord(m[0], m[1]);
+                            var c = _instance.convertToCoord(m[0], m[1]);
                             var lastCoord = n.__data__.coord;
 
                             if (lastCoord[0] != c[0] || lastCoord[1] != c[1]) {
                                 n.__data__.coord = c;
 
-                                adaptor.draw();
+                                _instance.draw();
                             }
                         });
                     //} else if (_mode == ADD_LINK_MODE) {
@@ -116,12 +118,12 @@ var guidedGraph;
             });
         }
 
-        adaptor.draw = function() {
+        _instance.draw = function() {
 
-            adaptor.calculatePositions();
+            _instance.calculatePositions();
 
             // Nodes
-            var nodes = svg.selectAll('g.node')
+            var nodes = _svg.selectAll('g.node')
                 .data(_nodes, function(n) {
                     return n.id;
                 });
@@ -145,7 +147,7 @@ var guidedGraph;
 
 
             // Links
-            var links = svg.select('g.links').selectAll('path.link')
+            var links = _svg.select('g.links').selectAll('path.link')
                 .data(_links, function(d) {
                     // Define an identifier, in this case, it is possible
                     // to define two different links between source and target.
@@ -158,7 +160,7 @@ var guidedGraph;
                 .attr('class', 'link');
 
             links.transition().
-                attr('d', diagonal);
+                attr('d', _diagonal);
 
             links.on('mousedown', function() {
                 clearSelectedArray();
@@ -168,7 +170,7 @@ var guidedGraph;
 
                 d3.select(this).classed('selected-link', true);
 
-                adaptor.draw();
+                _instance.draw();
 
                 d3.event.stopPropagation();
             });
@@ -177,7 +179,7 @@ var guidedGraph;
 
 
             // Groups
-            var groups = svg.select('g.groups').selectAll('g.group')
+            var groups = _svg.select('g.groups').selectAll('g.group')
                 .data(_groups, function(g) {
                     return g.id;
                 });
@@ -186,7 +188,7 @@ var guidedGraph;
                 .append('g')
                 .attr('class', 'group')
                 .attr('transform', function(g) {
-                    return 'translate(' + (g.x - boxPadding * g.level) + ',' + (g.y - boxPadding * g.level) + ')';
+                    return 'translate(' + (g.x - _boxPadding * g.level) + ',' + (g.y - _boxPadding * g.level) + ')';
                 });
 
             ggroups.append('text')
@@ -204,7 +206,7 @@ var guidedGraph;
 
             groups.transition()
                 .attr('transform', function(g) {
-                    return 'translate(' + (g.x - boxPadding * g.level) + ',' + (g.y - boxPadding * g.level) + ')';
+                    return 'translate(' + (g.x - _boxPadding * g.level) + ',' + (g.y - _boxPadding * g.level) + ')';
                 });
 
             groups.select('rect')
@@ -216,17 +218,17 @@ var guidedGraph;
                     var maxTextWidth = 0;
 
                     g.leaves.forEach(function(l) {
-                        if (maxX < l.x + distanceText + l.textWidth) {
-                            maxX = l.x + distanceText + l.textWidth;
+                        if (maxX < l.x + _distanceText + l.textWidth) {
+                            maxX = l.x + _distanceText + l.textWidth;
                             maxTextWidth = l.textWidth;
                         }
                     });
 
-                    g.finalWidth = g.width + maxTextWidth + distanceText + 10 + boxPadding * (g.level - 1) * 2;
+                    g.finalWidth = g.width + maxTextWidth + _distanceText + 10 + _boxPadding * (g.level - 1) * 2;
 
                     return g.finalWidth;
                 })
-                .attr('height', function(g) { return g.height + 2 * boxPadding * g.level; })
+                .attr('height', function(g) { return g.height + 2 * _boxPadding * g.level; })
                 .attr('rx', 10)
                 .attr('ry', 10)
                 .attr('stroke-dasharray', '5,5');
@@ -268,13 +270,30 @@ var guidedGraph;
                     })
                     .append('tspan')
                     .attr('class', 'description1')
-                    .text(function(d) {
-                        return d.description1;
-                    })
                     .attr('x', 0)
                     .attr('y', 0)
                     .attr('dx', 35)
                     .attr('dy', 32)
+                    .text(function(d) {
+                        return d.description1;
+                    })
+                    .each(function(d) {
+                        d.textWidth = this.getBBox().width;
+                    });
+
+                nodes.selectAll('text')
+                    .text(function(d) {
+                        return d.name;
+                    })
+                    .append('tspan')
+                    .attr('class', 'description1')
+                    .attr('x', 0)
+                    .attr('y', 0)
+                    .attr('dx', 35)
+                    .attr('dy', 32)
+                    .text(function(d) {
+                        return d.description1;
+                    })
                     .each(function(d) {
                         d.textWidth = this.getBBox().width;
                     });
@@ -285,6 +304,14 @@ var guidedGraph;
 
                 gnodes.append('path')
                     .attr('class', 'icon')
+                    .attr('d', function(d) {
+                        return icons[d.appType].d;
+                    })
+                    .attr('transform', function(d) {
+                        return icons[d.appType].transform;
+                    });
+
+                nodes.selectAll('g>path.icon')
                     .attr('d', function(d) {
                         return icons[d.appType].d;
                     })
@@ -336,7 +363,7 @@ var guidedGraph;
                     if (_mode == ADD_LINK_MODE && this.parentNode != _selected[0]) {
                         d3.select(this.parentNode).classed('selected-node', true);
 
-                        adaptor.draw();
+                        _instance.draw();
                     }
                 });
 
@@ -346,7 +373,7 @@ var guidedGraph;
                     if (_mode == ADD_LINK_MODE && this.parentNode != _selected[0]) {
                         d3.select(this.parentNode).classed('selected-node', false);
 
-                        adaptor.draw();
+                        _instance.draw();
                     }
                 });
 
@@ -355,11 +382,14 @@ var guidedGraph;
                     _selected.push(this.parentNode);
                     _mode = MOVE_MODE;
 
-                    svg.classed('selection-mode', true);
+                    _svg.classed('selection-mode', true);
 
                     d3.select(this.parentNode).classed('selected-node', true);
 
-                    adaptor.draw();
+                    _instance.draw();
+
+                    // call the external function
+                    _onSelectEvent(this.parentNode.__data__);
 
                     d3.event.stopPropagation();
                 });
@@ -371,9 +401,9 @@ var guidedGraph;
 
                         d3.select(this.parentNode).classed('selected-node', false);
 
-                        svg.classed('add-link-mode', false);
+                        _svg.classed('add-link-mode', false);
 
-                        adaptor.draw();
+                        _instance.draw();
                     }
                 });
 
@@ -384,7 +414,7 @@ var guidedGraph;
                     if (_mode == ADD_LINK_MODE && this.parentNode != _selected[0]) {
                         d3.select(this.parentNode).classed('selected-node', true);
 
-                        adaptor.draw();
+                        _instance.draw();
                     }
                 });
 
@@ -394,7 +424,7 @@ var guidedGraph;
                     if (_mode == ADD_LINK_MODE && this.parentNode != _selected[0]) {
                         d3.select(this.parentNode).classed('selected-node', false);
 
-                        adaptor.draw();
+                        _instance.draw();
                     }
                 });
 
@@ -403,11 +433,14 @@ var guidedGraph;
                     _selected.push(this.parentNode);
                     _mode = MOVE_MODE;
 
-                    svg.classed('selection-mode', true);
+                    _svg.classed('selection-mode', true);
 
                     d3.select(this.parentNode).classed('selected-node', true);
 
-                    adaptor.draw();
+                    _instance.draw();
+
+                    // call the external function
+                    _onSelectEvent(this.parentNode.__data__);
 
                     d3.event.stopPropagation();
                 });
@@ -419,9 +452,9 @@ var guidedGraph;
 
                         d3.select(this.parentNode).classed('selected-node', false);
 
-                        svg.classed('add-link-mode', false);
+                        _svg.classed('add-link-mode', false);
 
-                        adaptor.draw();
+                        _instance.draw();
                     }
                 });
 
@@ -441,13 +474,13 @@ var guidedGraph;
                 gnodes.selectAll('path.selected').on('mousedown', function() {
                     _mode = ADD_LINK_MODE;
 
-                    svg.classed('add-link-mode', true);
+                    _svg.classed('add-link-mode', true);
 
                     d3.event.stopPropagation();
                 });
 
                 function newLink(node) {
-                    adaptor.addLink({"source":_selected[0].__data__.id,"target":node.__data__.id,"value":1});
+                    _instance.addLink({"source":_selected[0].__data__.id,"target":node.__data__.id,"value":1});
 
                     _mode = NO_MODE;
                 }
@@ -455,31 +488,34 @@ var guidedGraph;
 
         };
 
+        _instance.onSelectEvent = function(fn) {
+            _onSelectEvent = fn;
+        };
 
-        adaptor.size = function(w, h) {
+        _instance.size = function(w, h) {
             if (w && h) {
-                gridCellWidth = w;
-                gridCellHeight = h;
+                _gridCellWidth = w;
+                _gridCellHeight = h;
             }
 
-            return adaptor;
+            return _instance;
         };
 
-        adaptor.nodes = function(v) {
+        _instance.nodes = function(v) {
             _nodes = v;
 
-            return adaptor;
+            return _instance;
         };
 
-        adaptor.addNode = function(v) {
+        _instance.addNode = function(v) {
             _nodes.push(v);
 
-            adaptor.draw();
+            _instance.draw();
 
-            return adaptor;
+            return _instance;
         };
 
-        adaptor.links = function(v) {
+        _instance.links = function(v) {
             _links = v;
 
             v.forEach(function(l) {
@@ -487,21 +523,21 @@ var guidedGraph;
                 l.target = _nodes.filter(function(n) { if (n.id == l.target) return n; })[0];
             });
 
-            return adaptor;
+            return _instance;
         };
 
-        adaptor.addLink = function(v) {
+        _instance.addLink = function(v) {
             v.source = _nodes.filter(function(n) { if (n.id == v.source) return n; })[0];
             v.target = _nodes.filter(function(n) { if (n.id == v.target) return n; })[0];
 
             _links.push(v);
 
-            adaptor.draw();
+            _instance.draw();
 
-            return adaptor;
+            return _instance;
         };
 
-        adaptor.groups = function(v) {
+        _instance.groups = function(v) {
             _groups = v;
 
             _groups.forEach(function(g) {
@@ -536,17 +572,17 @@ var guidedGraph;
                 g.id = id;
             });
 
-            return adaptor;
+            return _instance;
         };
 
-        adaptor.calculatePositions = function() {
+        _instance.calculatePositions = function() {
 
             _nodes.forEach(function(n) {
                 var x = n.coord[0];
                 var y = n.coord[1];
 
-                n.x = x * gridCellWidth + Math.round(gridCellWidth / 2);
-                n.y = y * gridCellHeight + Math.round(gridCellHeight / 2);
+                n.x = x * _gridCellWidth + Math.round(_gridCellWidth / 2);
+                n.y = y * _gridCellHeight + Math.round(_gridCellHeight / 2);
             });
 
             var processGroup = function(g) {
@@ -605,14 +641,14 @@ var guidedGraph;
                     g.level = checkLevel(g);
             });
 
-            return adaptor;
+            return _instance;
         };
 
-        adaptor.convertToCoord = function(x, y) {
-            return [Math.round((x - gridCellWidth / 2) / gridCellWidth), Math.round((y - gridCellHeight / 2) / gridCellHeight)];
+        _instance.convertToCoord = function(x, y) {
+            return [Math.round((x - _gridCellWidth / 2) / _gridCellWidth), Math.round((y - _gridCellHeight / 2) / _gridCellHeight)];
         };
 
-        adaptor.change = function(x, y) {
+        _instance.change = function(x, y) {
             _nodes[0].coord[0] = x;
             _nodes[0].coord[1] = y;
         };
@@ -630,13 +666,28 @@ var guidedGraph;
         //var metaChar = false;
         //var exampleKey = 16;
 
-        adaptor.keyEvent = function(event) {
+        _instance.keyEvent = function(event) {
             var key = event.keyCode || event.which;
             //var keychar = String.fromCharCode(key);
 
             if (key == 46 && _selected.length > 0) {
                 remove();
             }
+        };
+
+        _instance.exportData = function() {
+
+            var result = {
+                nodes: _nodes,
+                links: _links,
+                groups: _groups
+            };
+
+            // Copy the structure
+            var json = JSON.parse(JSON.stringify(result));
+
+            console.debug(JSON.stringify(removeAttribs(json)));
+
         };
 
         function remove() {
@@ -693,7 +744,7 @@ var guidedGraph;
 
             clearSelectedArray();
 
-            adaptor.draw();
+            _instance.draw();
         }
 
         function clearSelectedArray() {
@@ -734,6 +785,30 @@ var guidedGraph;
                 e.preventDefault();
             }
             return false;
+        }
+
+        function removeAttribs(obj) {
+
+            function deleteRecursive(data, key) {
+                for(var property in data) {
+                    if(data.hasOwnProperty(property)) {
+                        if(property == key) {
+                            delete data[key];
+                        }
+
+                        else {
+                            if(typeof data[property] === "object") {
+                                deleteRecursive(data[property], key);
+                            }
+                        }
+                    }
+                }
+            }
+
+            ['x', 'y', 'textWidth', 'finalWidth', 'maxX', 'maxY', 'width', 'height', 'level']
+                .forEach(function(attrib) { deleteRecursive(obj, attrib); });
+
+            return obj;
         }
 
         var icons = {
@@ -779,7 +854,7 @@ var guidedGraph;
             }
         };
 
-        return adaptor;
+        return _instance;
     };
 
     return guidedGraph;

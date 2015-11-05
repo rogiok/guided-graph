@@ -27,9 +27,39 @@
                         <output id="list"></output>
                     </div>
 
+                    <hr/>
+
                     <div class="guided-graph__toolbar">
-                        <input type="button" value="Add Node" onclick="addNewNode()">
+                        <form>
+                            <input type="button" value="Add Node" onclick="addNewNode()" class="btn btn-primary">
+                            <hr/>
+                            <div class="form-group">
+                                <label>Icon</label>
+                                <select name="graphIcon" class="form-control guided-graph__property-icon">
+                                    <option value="scala">Scala</option>
+                                    <option value="dotnet3">.NET</option>
+                                    <option value="angularjs">AngularJS</option>
+                                    <option value="windows">Windows</option>
+                                    <option value="linux">Linux</option>
+                                    <option value="mysql">MySQL</option>
+                                    <option value="database">Database</option>
+                                    <option value="man">Man</option>
+                                    <option value="browser">Browser</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Title</label>
+                                <input type="input" value="" name="graphName" class="form-control guided-graph__property-name">
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <input type="input" value="" name="graphDescription" class="form-control guided-graph__property-description">
+                            </div>
+                            <input type="button" value="Apply" onclick="applyNodeProperties()" class="btn btn-default">
+                        </form>
                     </div>
+
+                    <hr/>
 
                     <div class="guided-graph__testing">
                         <div id="qunit"></div>
@@ -77,9 +107,18 @@
             ]
         };
 
-        var gd3 = guidedGraph.adaptor().init('body', graph, 1600, 850, 80, 80);
+        var nodeSelected;
+        var gg = guidedGraph.instance().init('body', graph, 1600, 850, 80, 80);
 
-        gd3.draw();
+        gg.draw();
+
+        gg.onSelectEvent(function(node) {
+            nodeSelected = node;
+
+            $('.guided-graph__property-icon').val(node.appType);
+            $('.guided-graph__property-name').val(node.name);
+            $('.guided-graph__property-description').val(node.description1);
+        });
 
     //    var drag = d3.behavior.drag()
     //            .on('drag', function( d, i) {
@@ -87,12 +126,20 @@
     //            });
 
         function keyEvent(event) {
-            gd3.keyEvent(event);
+            gg.keyEvent(event);
+        }
+
+        function applyNodeProperties() {
+            nodeSelected.appType = $('.guided-graph__property-icon').val();
+            nodeSelected.name = $('.guided-graph__property-name').val();
+            nodeSelected.description1 = $('.guided-graph__property-description').val();
+
+            gg.draw();
         }
 
         QUnit.test('calculation test', function( assert ) {
 
-            var t3d = guidedGraph.adaptor().size(20, 20);
+            var t3d = guidedGraph.instance().size(20, 20);
 
             var graph = {
                 "nodes":[
@@ -116,7 +163,7 @@
     <script>
 
         function addNewNode() {
-            gd3.addNode({"id":"111","name":"","description1":"","appType":"browser","coord":[0, 0]});
+            gg.addNode({"id":"111","name":"","description1":"","appType":"browser","coord":[0, 0]});
         }
 
         function handleFileSelect(evt) {
@@ -140,8 +187,8 @@
                     return function(e) {
 //                        console.debug(e.target.result);
 
-                        gd3.init('body', JSON.parse(e.target.result), 1600, 850, 80, 80);
-                        gd3.draw();
+                        gg.init('body', JSON.parse(e.target.result), 1600, 850, 80, 80);
+                        gg.draw();
                     };
                 })(f);
 
