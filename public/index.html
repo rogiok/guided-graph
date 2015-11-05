@@ -56,6 +56,8 @@
                                 <input type="input" value="" name="graphDescription" class="form-control guided-graph__property-description">
                             </div>
                             <input type="button" value="Apply" onclick="applyNodeProperties()" class="btn btn-default">
+                            <hr/>
+                            <input type="button" value="Export JSON" onclick="exportData()" class="btn btn-success">
                         </form>
                     </div>
 
@@ -164,6 +166,10 @@
 
         function addNewNode() {
             gg.addNode({"id":"111","name":"","description1":"","appType":"browser","coord":[0, 0]});
+        }
+
+        function exportData() {
+            gg.exportData();
         }
 
         function handleFileSelect(evt) {
