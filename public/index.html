@@ -36,6 +36,7 @@
                             <div class="form-group">
                                 <label>Icon</label>
                                 <select name="graphIcon" class="form-control guided-graph__property-icon">
+                                    <option value="">None</option>
                                     <option value="scala">Scala</option>
                                     <option value="dotnet3">.NET</option>
                                     <option value="angularjs">AngularJS</option>
@@ -56,7 +57,7 @@
                                 <label>Description</label>
                                 <input type="input" value="" name="graphDescription" class="form-control guided-graph__property-description">
                             </div>
-                            <input type="button" value="Apply" onclick="applyNodeProperties()" class="btn btn-default">
+                            <input type="button" value="Apply" onclick="applyNodeProperties()" class="btn btn-primary">
                             <hr/>
                             <input type="button" value="Export JSON" onclick="exportData()" class="btn btn-success">
                         </form>
@@ -104,9 +105,9 @@
                 {"source":4,"target":8,"value":1}
             ],
             "groups":[
-                {"leaves":[1,2],"name":"front-end"},
-                {"leaves":[3,4,5],"name":"back-end"},
-                {"groups":[0,1],"leaves":[7],"name":"main system"}
+                {"id": 0, "leaves":[1,2],"name":"front-end"},
+                {"id": 1, "leaves":[3,4,5],"name":"back-end"},
+                {"id": 2, "groups":[0,1],"leaves":[7],"name":"main system"}
             ]
         };
 
@@ -161,12 +162,36 @@
             assert.equal(values[1].y, 50, 'We expect value to be 50' );
         });
 
+        QUnit.test('export test', function( assert ) {
+
+            var t3d = guidedGraph.instance().size(20, 20);
+
+            var graph = {
+                "nodes":[
+                    {"id": 0, "name":"a","coord": [1, 1]},
+                    {"id": 1, "name":"b","coord": [1, 2]}
+                ],
+                "links":[
+                    {"source":0,"target":1,"value":1}
+                ],
+                "groups":[
+                    {"id": 0, "leaves":[0,1],"name":"front-end"}
+                ]
+            };
+
+            var expected = JSON.stringify(graph);
+
+            var result = t3d.nodes(graph.nodes).links(graph.links).groups(graph.groups).exportData();
+
+            assert.equal(result, expected, 'We expect value to be equals' );
+        });
+
     </script>
 
     <script>
 
         function addNewNode() {
-            gg.addNode({"id":"111","name":"","description1":"","appType":"browser","coord":[0, 0]});
+            gg.addNode({"id":"111","name":"","description1":"","appType":"","coord":[0, 0]});
         }
 
         function exportData() {

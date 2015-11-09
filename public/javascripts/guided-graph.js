@@ -245,7 +245,8 @@ var guidedGraph;
             nodes
                 .select('circle.selected')
                 .attr('visibility', function() {
-                    return d3.select(this.parentNode).attr('class').indexOf('selected-node') > -1 ? 'visible' : 'hidden';
+                    return d3.select(this.parentNode).attr('class').indexOf('selected-node') > -1 &&
+                        _mode == ADD_LINK_MODE && this.parentNode != _selected[0] ? 'visible' : 'hidden';
                 });
 
             nodes
@@ -305,18 +306,18 @@ var guidedGraph;
                 gnodes.append('path')
                     .attr('class', 'icon')
                     .attr('d', function(d) {
-                        return icons[d.appType].d;
+                        return icons[d.appType] ? icons[d.appType].d : '';
                     })
                     .attr('transform', function(d) {
-                        return icons[d.appType].transform;
+                        return icons[d.appType] ? icons[d.appType].transform : '';
                     });
 
                 nodes.selectAll('g>path.icon')
                     .attr('d', function(d) {
-                        return icons[d.appType].d;
+                        return icons[d.appType] ? icons[d.appType].d : '';
                     })
                     .attr('transform', function(d) {
-                        return icons[d.appType].transform;
+                        return icons[d.appType] ? icons[d.appType].transform : '';
                     });
 
                 gnodes.append('circle')
@@ -324,32 +325,34 @@ var guidedGraph;
                     .attr('r', 30)
                     .attr('visibility', 'hidden');
 
-                // West
+                var d = 36;
+
+                // Arrow West
                 gnodes.append('path')
                     .attr('class', 'selected')
                     .attr('d', 'M-5 0 L5 -10 L5 10Z')
-                    .attr('transform', 'translate(-40 0)')
+                    .attr('transform', 'translate(-' + d + ' 0)')
                     .attr('visibility', 'hidden');
 
-                // East
+                // Arrow East
                 gnodes.append('path')
                     .attr('class', 'selected')
                     .attr('d', 'M-5 -10 L5 0 L-5 10Z')
-                    .attr('transform', 'translate(40 0)')
+                    .attr('transform', 'translate(' + d + ' 0)')
                     .attr('visibility', 'hidden');
 
-                // South
+                // Arrow South
                 gnodes.append('path')
                     .attr('class', 'selected')
                     .attr('d', 'M-10 -5 L0 5 L10 -5Z')
-                    .attr('transform', 'translate(0 40)')
+                    .attr('transform', 'translate(0 ' + d + ')')
                     .attr('visibility', 'hidden');
 
-                // North
+                // Arrow North
                 gnodes.append('path')
                     .attr('class', 'selected')
                     .attr('d', 'M-10 5 L0 -5 L10 5Z')
-                    .attr('transform', 'translate(0 -40)')
+                    .attr('transform', 'translate(0 -' + d + ')')
                     .attr('visibility', 'hidden');
 
             }
@@ -541,13 +544,24 @@ var guidedGraph;
             _groups = v;
 
             _groups.forEach(function(g) {
-                var id = "";
 
-                if (g.leaves)
+                if (g.leaves) {
                     for (var i = 0; i < g.leaves.length; i++) {
-                        id = id + 'n' + g.leaves[i];
-                        g.leaves[i] = _nodes[g.leaves[i]];
+                        // Get the leaf id and change to respective node object
+                        //id = g.id + 'n' + g.leaves[i];
+                        //g.leaves[i] = _nodes[g.leaves[i]];
+                        var r = _nodes.filter(function (n) {
+                            if (n.id == g.leaves[i]) return n;
+                        });
+
+                        if (r.length > 0)
+                            g.leaves[i] = r[0];
+                        else
+                            console.error('Invalid Node ' + g.leaves[i] + ' defined in group ' + g.id);
                     }
+
+                    g.originalLeaves = g.leaves;
+                }
 
                 var getLeaves = function(group) {
 
@@ -562,14 +576,19 @@ var guidedGraph;
 
                 if (g.groups) {
                     for (var i = 0; i < g.groups.length; i++) {
-                        id = id + 'g' + g.groups[i];
-                        g.groups[i] = _groups[g.groups[i]];
+                        //id = g.id + 'g' + g.groups[i];
+                        //g.groups[i] = _groups[g.groups[i]];
+                        // Get the group id and change to the respective group object
+                        var r = _groups.filter(function(gc) { if (gc.id == g.groups[i]) return gc; });
+
+                        if (r.length > 0)
+                            g.groups[i] = r[0];
+                        else
+                            console.error('Invalid Group ' + g.groups[i] + ' defined in group ' + g.id);
                     }
 
                     g.leaves = g.leaves.concat(getLeaves(g));
                 }
-
-                g.id = id;
             });
 
             return _instance;
@@ -677,17 +696,46 @@ var guidedGraph;
 
         _instance.exportData = function() {
 
-            var result = {
-                nodes: _nodes,
-                links: _links,
-                groups: _groups
+            var json = {
+                nodes: _nodes.map(function(n) {
+                    return {
+                        "id": n.id,
+                        "name": n.name,
+                        "description1": n.description1,
+                        "appType": n.appType,
+                        "coord": n.coord
+                    };
+                }),
+                links: _links.map(function(l) {
+                    return {
+                        "source": l.source.id,
+                        "target": l.target.id,
+                        "value": l.value
+                    };
+                }),
+                groups: _groups.map(function(g) {
+
+                    if (g.groups)
+                        return {
+                            "id": g.id,
+                            "groups": g.groups.map(function(group) { return group.id; }),
+                            "leaves": g.originalLeaves.map(function(leaf) { return leaf.id; }),
+                            "name": g.name
+                        };
+                    else
+                        return {
+                            "id": g.id,
+                            "leaves": g.originalLeaves.map(function(leaf) { return leaf.id; }),
+                            "name": g.name
+                        };
+                })
             };
 
             // Copy the structure
-            var json = JSON.parse(JSON.stringify(result));
+            //var json = JSON.parse(JSON.stringify(result));
 
-            console.debug(JSON.stringify(removeAttribs(json)));
-
+            //console.debug(JSON.stringify(removeAttribs(json)));
+            return JSON.stringify(json);
         };
 
         function remove() {

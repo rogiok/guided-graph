@@ -44,8 +44,8 @@ a {
 }
 
 .node path.selected {
-  fill: white;
-  fill-opacity: 0;
+  fill: #da4939;
+  fill-opacity: 1;
   stroke: #da4939;
   stroke-width: 2px;
 }
@@ -101,6 +101,7 @@ path.selected-link {
   z-index: 1002;
   width: 250px;
   height: 100%;
+  overflow: auto;
   /*background: #424a5d;*/
 }
 
