@@ -22,8 +22,8 @@
     {"source":4,"target":8,"value":1}
   ],
   "groups":[
-    {"id": 0, "leaves":[1,2],"name":"front-end"},
-    {"id": 1, "leaves":[3,4,5],"name":"back-end"},
-    {"id": 2, "groups":[0,1],"leaves":[7],"name":"main system"}
+    {"id":0,"leaves":[1,2],"name":"front-end"},
+    {"id":1,"leaves":[3,4,5],"name":"back-end"},
+    {"id":2,"groups":[0,1],"leaves":[7],"name":"main system"}
   ]
 }

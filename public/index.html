@@ -14,6 +14,7 @@
     <script type="text/javascript" src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="bower_components/qunit/qunit/qunit.js"></script>
     <script type="text/javascript" src="bower_components/hashids/lib/hashids.min.js"></script>
+    <script type="text/javascript" src="javascripts/save-svg.js"></script>
     <script type="text/javascript" src="javascripts/guided-graph.js"></script>
 </head>
 <body onkeydown="keyEvent(event)">
@@ -59,7 +60,8 @@
                             </div>
                             <input type="button" value="Apply" onclick="applyNodeProperties()" class="btn btn-primary">
                             <hr/>
-                            <input type="button" value="Export JSON" onclick="exportData()" class="btn btn-success">
+                            <input type="button" value="Export to JSON" onclick="exportData()" class="btn btn-success">
+                            <input type="button" value="Export to PNG" onclick="exportPNG()" class="btn btn-success">
                         </form>
                     </div>
 
@@ -80,6 +82,8 @@
 
 
     <script type="text/javascript">
+
+        var width = 2600;
 
         var graph = {
             "nodes":[
@@ -105,14 +109,14 @@
                 {"source":4,"target":8,"value":1}
             ],
             "groups":[
-                {"id": 0, "leaves":[1,2],"name":"front-end"},
-                {"id": 1, "leaves":[3,4,5],"name":"back-end"},
-                {"id": 2, "groups":[0,1],"leaves":[7],"name":"main system"}
+                {"id":0,"leaves":[1,2],"name":"front-end"},
+                {"id":1,"leaves":[3,4,5],"name":"back-end"},
+                {"id":2,"groups":[0,1],"leaves":[7],"name":"main system"}
             ]
         };
 
         var nodeSelected;
-        var gg = guidedGraph.instance().init('body', graph, 1600, 850, 80, 80);
+        var gg = guidedGraph.instance().init('body', graph, width, 850, 80, 80);
 
         gg.draw();
 
@@ -191,7 +195,11 @@
     <script>
 
         function addNewNode() {
-            gg.addNode({"id":"111","name":"","description1":"","appType":"","coord":[0, 0]});
+            gg.addNode({"id": getRandomArbitrary(100, 999999),"name":"","description1":"","appType":"","coord":[0, 0]});
+        }
+
+        function getRandomArbitrary(min, max) {
+            return Math.round(Math.random() * (max - min) + min);
         }
 
         function exportData() {
@@ -219,7 +227,7 @@
                     return function(e) {
 //                        console.debug(e.target.result);
 
-                        gg.init('body', JSON.parse(e.target.result), 1600, 850, 80, 80);
+                        gg.init('body', JSON.parse(e.target.result), width, 850, 80, 80);
                         gg.draw();
                     };
                 })(f);
@@ -240,6 +248,11 @@
         var dropZone = document.getElementById('drop_zone');
         dropZone.addEventListener('dragover', handleDragOver, false);
         dropZone.addEventListener('drop', handleFileSelect, false);
+
+        function exportPNG() {
+            saveSvgAsPng(document.getElementById("svg"), "diagram.png");
+        }
+
     </script>
 
 </body>

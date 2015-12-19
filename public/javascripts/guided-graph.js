@@ -43,7 +43,8 @@ var guidedGraph;
                 .append('svg')
                 .attr('id', 'svg')
                 .attr('width', areaWidth)
-                .attr('height', areHeight);
+                .attr('height', areHeight)
+                .attr('style', 'background-color: white');
 
             _diagonal = d3.svg.diagonal()
                 .projection(function(d) {
@@ -97,7 +98,7 @@ var guidedGraph;
             });
 
             _svg.on('mousemove', function() {
-                var m = d3.mouse(this.parentNode);
+                var m = d3.mouse(this);
 
                 if (_selected.length > 0) {
                     if (_mode == MOVE_MODE) {
@@ -735,6 +736,9 @@ var guidedGraph;
             //var json = JSON.parse(JSON.stringify(result));
 
             //console.debug(JSON.stringify(removeAttribs(json)));
+
+            console.debug(JSON.stringify(json));
+
             return JSON.stringify(json);
         };
 
@@ -760,26 +764,44 @@ var guidedGraph;
 
                 // Remove all links associated with this node
                 _links.filter(function(l) {
-                    if (l.source.id == n.id || l.target.id == n.id) {
-                        return l;
-                    }
+                    return l.source.id == n.id || l.target.id == n.id;
                 }).forEach(function(l) { removeLink(l); });
 
                 // Remove all groups associated with this node
                 _groups.filter(function(g) {
-                    var gs = g.leaves.filter(function(gc) {
-                        if (gc.id == n.id) return gc;
+                    g.leaves.filter(function(leaf) {
+                        return leaf.id == n.id;
+                    }).forEach(function(gs) {
+                        var index = g.leaves.indexOf(gs);
+
+                        if (index >= 0)
+                            g.leaves.splice(index, 1);
+                    });
+                    //
+                    //if (gs.length > 0) {
+                    //    var index = g.leaves.indexOf(gs[0]);
+                    //
+                    //    if (index >= 0)
+                    //        g.leaves.splice(index, 1);
+                    //}
+
+                    return g.leaves.length == 0;
+                }).forEach(function(g) {
+
+                    // Remove from parent group
+                    _groups.forEach(function(gc) {
+                        if (gc.groups) {
+                            var r = gc.groups.filter(function(gcc) { return g.id == gcc.id; });
+
+                            if (r.length > 0) {
+                                var index = gc.groups.indexOf(r[0]);
+
+                                gc.groups.splice(index, 1);
+                            }
+                        }
                     });
 
-                    var index = g.leaves.indexOf(gs[0]);
-
-                    if (index >= 0)
-                        g.leaves.splice(index, 1);
-
-                    if (g.leaves.length == 0) {
-                        return g;
-                    }
-                }).forEach(function(g) {
+                    // Remove from main group list
                     var index = _groups.indexOf(g);
 
                     if (index >= 0)
