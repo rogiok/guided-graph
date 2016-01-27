@@ -10,21 +10,28 @@ var guidedGraph;
         var _links = [];
         var _groups = [];
 
-        var _gridCellWidth = 20;
-        var _gridCellHeight = 20;
+        var _gridCellWidth = 0;
+        var _gridCellHeight = 0;
 
-        var _svg, _diagonal;
+        var _parent, _svg, _diagonal;
 
         var _distanceText = 80;
-        var _boxPadding = 40;
+        var _boxPadding = 0;
         var _selected = [];
 
         var NO_MODE = 0;
         var MOVE_MODE = 2;
-        var ADD_LINK_MODE = 4;
-        var SELECTION_LINK_MODE = 8;
-        var SELECTION_NODE_MODE = 16;
+        var SCREEN_MOVE_MODE = 4;
+        var ADD_LINK_MODE = 8;
+        var SELECTION_LINK_MODE = 16;
+        var SELECTION_NODE_MODE = 32;
         var _mode;
+        var _lastMode;
+
+        var _screenRefX = 0;
+        var _screenRefY = 0;
+        var _startScreenPosition = [];
+        var _lastScreenPosition = [];
 
         var _onSelectEvent;
 
@@ -37,7 +44,9 @@ var guidedGraph;
                 .links(_graph.links)
                 .groups(_graph.groups);
 
-            d3.select('#' + divId).select('svg').remove();
+            _parent = d3.select('#' + divId);
+
+            _parent.select('svg').remove();
 
             _svg = d3.select('#' + divId)
                 .append('svg')
@@ -76,24 +85,59 @@ var guidedGraph;
 
         function defineEvents() {
             _svg.on('mousedown', function() {
-                _mode = NO_MODE;
-
-                clearSelectedArray();
-
-                _instance.draw();
+                _lastMode = _mode;
+                _mode = SCREEN_MOVE_MODE;
+                _lastScreenPosition = d3.mouse(this);
+                _startScreenPosition = _lastScreenPosition;
             });
 
             _svg.on('mouseup', function() {
                 if (_mode == MOVE_MODE) {
                     _mode = SELECTION_NODE_MODE;
 
-                    _svg.classed('selection-mode', false);
-                }
+                    _svg.classed('move-mode', false);
 
-                if (_mode == ADD_LINK_MODE) {
+                    /*
+                    var bounds = _instance.getBounds();
+                    var width = parseInt(d3.select('#svg').attr('width'));
+
+                    if (bounds[0] > _gridCellWidth / 2) {
+
+                        var steps = ((bounds[0] - _gridCellWidth / 2) / _gridCellWidth);
+
+                        _instance.stepTo(steps * -1, 0);
+
+                    }
+
+                    bounds = _instance.getBounds();
+
+                    //if (bounds[0] + bounds[2] != width - _gridCellWidth / 2) {
+                        d3.select('#svg').attr('width', bounds[0] + bounds[2] + _gridCellWidth / 2);
+                    //}
+
+                    console.debug('mouseup');
+
+                    _instance.draw();
+                    */
+                } else if (_mode == ADD_LINK_MODE) {
                     _mode = SELECTION_LINK_MODE;
 
                     _svg.classed('add-link-mode', false);
+
+                } else if (_mode == SCREEN_MOVE_MODE) {
+                    var m = d3.mouse(this);
+
+                    if (m[0] == _startScreenPosition[0] && m[1] == _startScreenPosition[1]) {
+                        _mode = NO_MODE;
+
+                        clearSelectedArray();
+
+                        _instance.draw();
+                    } else {
+                        _mode = _lastMode;
+                    }
+
+                    _svg.classed('move-mode', false);
                 }
             });
 
@@ -102,19 +146,48 @@ var guidedGraph;
 
                 if (_selected.length > 0) {
                     if (_mode == MOVE_MODE) {
+
+                        var redraw = false;
+
                         _selected.forEach(function (n) {
-                            var c = _instance.convertToCoord(m[0], m[1]);
+                            var c = _instance.convertToCoord(m[0] - _screenRefX, m[1] - _screenRefY);
                             var lastCoord = n.__data__.coord;
 
                             if (lastCoord[0] != c[0] || lastCoord[1] != c[1]) {
                                 n.__data__.coord = c;
 
-                                _instance.draw();
+                                redraw = true;
                             }
                         });
-                    //} else if (_mode == ADD_LINK_MODE) {
+
+                        if (redraw) {
+                            _instance.draw();
+                        }
+                        //} else if (_mode == ADD_LINK_MODE) {
 
                     }
+                }
+
+                if (_mode == SCREEN_MOVE_MODE) {
+
+                    if (_lastScreenPosition.length == 0)
+                        _lastScreenPosition = m;
+                    //if (_screenRefX == 0 && _screenRefY == 0) {
+                    //    _screenRefX = m[0];
+                    //    _screenRefY = m[1];
+                    //}
+
+                    var dx = m[0] - _lastScreenPosition[0];
+                    var dy = m[1] - _lastScreenPosition[1];
+                    _screenRefX = _screenRefX + dx;
+                    _screenRefY = _screenRefY + dy;
+
+                    _instance.moveNodesByXY(dx, dy);
+                    //_instance.draw();
+
+                    _lastScreenPosition = m;
+
+                    _svg.classed('move-mode', true);
                 }
             });
         }
@@ -132,8 +205,8 @@ var guidedGraph;
             var gnodes = nodes.enter()
                 .append('g')
                 .attr('class', 'node')
-                .attr('transform', function(d) {
-                    return 'translate(' + [d.x, d.y] + ')';
+                .attr('transform', function(n) {
+                    return 'translate(' + [n.x, n.y] + ')';
                 });
 
             nodes.exit().remove();
@@ -142,18 +215,18 @@ var guidedGraph;
             defineNodeEvents();
 
             nodes.transition()
-                .attr('transform', function(d) {
-                    return 'translate(' + d.x + ',' + d.y + ')';
+                .attr('transform', function(n) {
+                    return 'translate(' + n.x + ',' + n.y + ')';
                 });
 
 
             // Links
             var links = _svg.select('g.links').selectAll('path.link')
-                .data(_links, function(d) {
+                .data(_links, function(l) {
                     // Define an identifier, in this case, it is possible
                     // to define two different links between source and target.
                     // To define more than 2 links, it is necessary to change this identifier.
-                    return d.source.id + '-' + d.target.id;
+                    return l.source.id + '-' + l.target.id;
                 });
 
             links.enter()
@@ -161,7 +234,10 @@ var guidedGraph;
                 .attr('class', 'link');
 
             links.transition().
-                attr('d', _diagonal);
+                attr('d', _diagonal).
+                attr('transform', function() {
+                    return "translate(0,0)";
+                });
 
             links.on('mousedown', function() {
                 clearSelectedArray();
@@ -189,25 +265,31 @@ var guidedGraph;
                 .append('g')
                 .attr('class', 'group')
                 .attr('transform', function(g) {
-                    return 'translate(' + (g.x - _boxPadding * g.level) + ',' + (g.y - _boxPadding * g.level) + ')';
+                    g.finalX = g.x - _boxPadding * g.level;
+                    g.finalY = g.y - _boxPadding * g.level;
+
+                    return 'translate(' + g.finalX + ',' + g.finalY + ')';
                 });
 
             ggroups.append('text')
                 .attr('class', 'name')
                 .attr('dx', -10)
                 .attr('dy', -10)
-                .text(function(d) {
-                    return d.name;
+                .text(function(g) {
+                    return g.name;
                 })
-                .each(function(d) {
-                    d.textWidth = this.getBBox().width;
+                .each(function(g) {
+                    g.textWidth = this.getBBox().width;
                 });
 
             ggroups.append('rect');
 
             groups.transition()
                 .attr('transform', function(g) {
-                    return 'translate(' + (g.x - _boxPadding * g.level) + ',' + (g.y - _boxPadding * g.level) + ')';
+                    g.finalX = g.x - _boxPadding * g.level;
+                    g.finalY = g.y - _boxPadding * g.level;
+
+                    return 'translate(' + g.finalX + ',' + g.finalY + ')';
                 });
 
             groups.select('rect')
@@ -215,12 +297,14 @@ var guidedGraph;
                 .attr('x', 0)
                 .attr('y', 0)
                 .attr('width', function(g) {
-                    var maxX = 0;
+                    var maxX = Number.MIN_SAFE_INTEGER;
                     var maxTextWidth = 0;
 
                     g.leaves.forEach(function(l) {
-                        if (maxX < l.x + _distanceText + l.textWidth) {
-                            maxX = l.x + _distanceText + l.textWidth;
+                        var leafWidth = l.x + _distanceText + l.textWidth;
+
+                        if (maxX < leafWidth) {
+                            maxX = leafWidth;
                             maxTextWidth = l.textWidth;
                         }
                     });
@@ -229,7 +313,11 @@ var guidedGraph;
 
                     return g.finalWidth;
                 })
-                .attr('height', function(g) { return g.height + 2 * _boxPadding * g.level; })
+                .attr('height', function(g) {
+                    g.finalHeight = g.height + 2 * _boxPadding * g.level;
+
+                    return g.finalHeight;
+                })
                 .attr('rx', 10)
                 .attr('ry', 10)
                 .attr('stroke-dasharray', '5,5');
@@ -267,8 +355,8 @@ var guidedGraph;
                     .attr('dx', 35)
                     .attr('dy', 18)
                     .attr('text-anchor', 'start')
-                    .text(function(d) {
-                        return d.name;
+                    .text(function(n) {
+                        return n.name;
                     })
                     .append('tspan')
                     .attr('class', 'description1')
@@ -276,16 +364,16 @@ var guidedGraph;
                     .attr('y', 0)
                     .attr('dx', 35)
                     .attr('dy', 32)
-                    .text(function(d) {
-                        return d.description1;
+                    .text(function(n) {
+                        return n.description1;
                     })
-                    .each(function(d) {
-                        d.textWidth = this.getBBox().width;
+                    .each(function(n) {
+                        n.textWidth = this.getBBox().width;
                     });
 
                 nodes.selectAll('text')
-                    .text(function(d) {
-                        return d.name;
+                    .text(function(n) {
+                        return n.name;
                     })
                     .append('tspan')
                     .attr('class', 'description1')
@@ -293,11 +381,11 @@ var guidedGraph;
                     .attr('y', 0)
                     .attr('dx', 35)
                     .attr('dy', 32)
-                    .text(function(d) {
-                        return d.description1;
+                    .text(function(n) {
+                        return n.description1;
                     })
-                    .each(function(d) {
-                        d.textWidth = this.getBBox().width;
+                    .each(function(n) {
+                        n.textWidth = this.getBBox().width;
                     });
 
                 gnodes.append('circle')
@@ -306,19 +394,19 @@ var guidedGraph;
 
                 gnodes.append('path')
                     .attr('class', 'icon')
-                    .attr('d', function(d) {
-                        return icons[d.appType] ? icons[d.appType].d : '';
+                    .attr('d', function(n) {
+                        return icons[n.appType] ? icons[n.appType].d : '';
                     })
-                    .attr('transform', function(d) {
-                        return icons[d.appType] ? icons[d.appType].transform : '';
+                    .attr('transform', function(n) {
+                        return icons[n.appType] ? icons[n.appType].transform : '';
                     });
 
                 nodes.selectAll('g>path.icon')
-                    .attr('d', function(d) {
-                        return icons[d.appType] ? icons[d.appType].d : '';
+                    .attr('d', function(n) {
+                        return icons[n.appType] ? icons[n.appType].d : '';
                     })
-                    .attr('transform', function(d) {
-                        return icons[d.appType] ? icons[d.appType].transform : '';
+                    .attr('transform', function(n) {
+                        return icons[n.appType] ? icons[n.appType].transform : '';
                     });
 
                 gnodes.append('circle')
@@ -379,6 +467,8 @@ var guidedGraph;
 
                         _instance.draw();
                     }
+
+                    d3.event.stopPropagation();
                 });
 
                 gnodes.select('circle').on('mousedown', function() {
@@ -386,7 +476,7 @@ var guidedGraph;
                     _selected.push(this.parentNode);
                     _mode = MOVE_MODE;
 
-                    _svg.classed('selection-mode', true);
+                    _svg.classed('move-mode', true);
 
                     d3.select(this.parentNode).classed('selected-node', true);
 
@@ -394,6 +484,8 @@ var guidedGraph;
 
                     // call the external function
                     _onSelectEvent(this.parentNode.__data__);
+
+                    console.debug('circle:mousedown');
 
                     d3.event.stopPropagation();
                 });
@@ -430,6 +522,8 @@ var guidedGraph;
 
                         _instance.draw();
                     }
+
+                    d3.event.stopPropagation();
                 });
 
                 gnodes.select('path').on('mousedown', function() {
@@ -437,7 +531,7 @@ var guidedGraph;
                     _selected.push(this.parentNode);
                     _mode = MOVE_MODE;
 
-                    _svg.classed('selection-mode', true);
+                    _svg.classed('move-mode', true);
 
                     d3.select(this.parentNode).classed('selected-node', true);
 
@@ -445,6 +539,8 @@ var guidedGraph;
 
                     // call the external function
                     _onSelectEvent(this.parentNode.__data__);
+
+                    console.debug('path:mousedown');
 
                     d3.event.stopPropagation();
                 });
@@ -480,6 +576,8 @@ var guidedGraph;
 
                     _svg.classed('add-link-mode', true);
 
+                    console.debug('path-selected:mousedown');
+
                     d3.event.stopPropagation();
                 });
 
@@ -500,6 +598,7 @@ var guidedGraph;
             if (w && h) {
                 _gridCellWidth = w;
                 _gridCellHeight = h;
+                _boxPadding = parseInt(w / 2);
             }
 
             return _instance;
@@ -601,15 +700,15 @@ var guidedGraph;
                 var x = n.coord[0];
                 var y = n.coord[1];
 
-                n.x = x * _gridCellWidth + Math.round(_gridCellWidth / 2);
-                n.y = y * _gridCellHeight + Math.round(_gridCellHeight / 2);
+                n.x = _screenRefX + x * _gridCellWidth + Math.round(_gridCellWidth / 2);
+                n.y = _screenRefY + y * _gridCellHeight + Math.round(_gridCellHeight / 2);
             });
 
             var processGroup = function(g) {
-                var minX = Number.MAX_VALUE;
-                var minY = Number.MAX_VALUE;
-                var maxX = 0;
-                var maxY = 0;
+                var minX = Number.MAX_SAFE_INTEGER;
+                var minY = Number.MAX_SAFE_INTEGER;
+                var maxX = Number.MIN_SAFE_INTEGER;
+                var maxY = Number.MIN_SAFE_INTEGER;
 
                 g.leaves.forEach(function(n) {
                     minX = Math.min(n.x, minX);
@@ -672,6 +771,80 @@ var guidedGraph;
             _nodes[0].coord[0] = x;
             _nodes[0].coord[1] = y;
         };
+
+        _instance.moveNodesByXY = function(dx, dy) {
+
+            //_nodes.forEach(function(n) {
+            //    n.x = n.x + dx;
+            //    n.y = n.y + dy;
+            //});
+
+            function updateTranslate() {
+                var e = d3.select(this);
+
+                if (e.attr('transform')) {
+
+                    var coord = e.attr('transform').replace('translate(', '').replace(')', '');
+                    coord = coord.split(',');
+                    coord = [parseInt(coord[0]), parseInt(coord[1])];
+
+                    e.attr('transform', 'translate(' + (coord[0] + dx) + ',' + (coord[1] + dy) + ')');
+                } else {
+                    e.attr('transform', 'translate(' + (dx) + ',' + (dy) + ')');
+                }
+            }
+
+            d3.selectAll('g.node').each(updateTranslate);
+            d3.selectAll('path.link').each(updateTranslate);
+            d3.selectAll('g.group').each(updateTranslate);
+
+            //_nodes.transition()
+            //    .attr('transform', function(n) {
+            //        return 'translate(' + n.x + ',' + n.y + ')';
+            //    });
+
+        };
+
+        /*
+        _instance.stepTo = function(dx, dy, excludeNodes) {
+
+            if (!excludeNodes)
+                excludeNodes = [];
+
+            _nodes.filter(function(n) {
+                return excludeNodes.indexOf(n) == -1
+            }).forEach(function(n) {
+                n.coord[0] = n.coord[0] + dx;
+                n.coord[1] = n.coord[1] + dy;
+            });
+
+            _instance.calculatePositions();
+        };
+
+        _instance.getBounds = function() {
+
+            var minX = Number.MAX_VALUE;
+            var minY = Number.MAX_VALUE;
+            var maxX = 0;
+            var maxY = 0;
+
+            _nodes.forEach(function(n) {
+                minX = Math.min(n.x, minX);
+                minY = Math.min(n.y, minY);
+                maxX = Math.max(n.x + n.textWidth, maxX);
+                maxY = Math.max(n.y, maxY);
+            });
+
+            _groups.forEach(function(g) {
+                minX = Math.min(g.finalX, minX);
+                minY = Math.min(g.finalY, minY);
+                maxX = Math.max(g.finalX + g.finalWidth, maxX);
+                maxY = Math.max(g.finalY + g.finalHeight, maxY);
+            });
+
+            return [minX, minY, parseInt(maxX), parseInt(maxY)];
+        };
+        */
 
         //var hashids = new Hashids("my salt");
         //

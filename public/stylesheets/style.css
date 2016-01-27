@@ -51,7 +51,7 @@ a {
   stroke-width: 2px;
 }
 
-.selection-mode {
+.move-mode {
   cursor: -webkit-grabbing;
   cursor: -moz-grabbing;
 }
