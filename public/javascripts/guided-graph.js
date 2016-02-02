@@ -485,8 +485,6 @@ var guidedGraph;
                     // call the external function
                     _onSelectEvent(this.parentNode.__data__);
 
-                    console.debug('circle:mousedown');
-
                     d3.event.stopPropagation();
                 });
 
@@ -540,8 +538,6 @@ var guidedGraph;
                     // call the external function
                     _onSelectEvent(this.parentNode.__data__);
 
-                    console.debug('path:mousedown');
-
                     d3.event.stopPropagation();
                 });
 
@@ -575,8 +571,6 @@ var guidedGraph;
                     _mode = ADD_LINK_MODE;
 
                     _svg.classed('add-link-mode', true);
-
-                    console.debug('path-selected:mousedown');
 
                     d3.event.stopPropagation();
                 });
